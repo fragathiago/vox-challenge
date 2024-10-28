@@ -1,0 +1,68 @@
+name: Cypress Tests
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+  schedule:
+    - cron: "0 12,20 * * 1-5"
+
+jobs:
+  regression-cypress:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Clean directories
+        run: |
+          echo "Cleaning directories..."
+          rm -rf allure-results allure-report
+          npm run cy:clean || echo "Clean script failed, but continuing."
+
+      - name: Install dependencies
+        run: npm install
+        continue-on-error: true
+      
+      - name: Run Cypress Tests and Generate Allure Report
+        id: cypress
+        run: |
+          npm run test:allure
+        continue-on-error: true
+     
+      - name: Load test report history
+        uses: actions/checkout@v3
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Build test report
+        uses: simple-elf/allure-report-action@v1.7
+        if: always()
+        with:
+          gh_pages: gh-pages
+          allure_history: allure-history
+          allure_results: allure-results
+
+      - name: Publish test report
+        uses: peaceiris/actions-gh-pages@v3
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
