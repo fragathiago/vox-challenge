@@ -40,7 +40,7 @@ jobs:
       - name: Run Cypress Tests and Generate Allure Report
         id: cypress
         run: |
-          npm run test:allure
+          npm run allure:test
         continue-on-error: true
      
       - name: Load test report history
